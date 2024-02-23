@@ -1,0 +1,4 @@
+opencv-python-headless
+requests
+m3u8
+bs4
