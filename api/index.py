@@ -8,12 +8,18 @@ import json,requests,secrets,string,re
 from bs4 import BeautifulSoup
 from datetime import datetime
 import urllib.parse
+import urllib.parse as urlparse
 def session(length):
     alphabet = string.ascii_letters + string.digits
     return ''.join(secrets.choice(alphabet) for i in range(length))
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        # GET PARAMS
+        parsed_url = urlparse.urlparse(self.path)
+        query_params = urlparse.parse_qs(parsed_url.query)
+
+        xid = query_params.get('id',None)
         # GET NECESSARY KEYS
         _session_upload = int(datetime.now().timestamp() * 1000)
         _session = requests.get('https://postimages.org/web')
@@ -41,7 +47,7 @@ class handler(BaseHTTPRequestHandler):
         _data = {
             'token':_token,
             'upload_session':_upload_session,
-            'url':'https://thumbzer.vercel.app/api/thumbnail',
+            'url':f'https://thumbzer.vercel.app/api/thumbnail?id={xid[0]}',
             'numfiles':1,
             'gallery':'',
             'ui':_ui,
@@ -57,6 +63,18 @@ class handler(BaseHTTPRequestHandler):
         _upload = requests.post('https://postimages.org/json/rr',headers=headers,data=_data)
         data = _upload.json()
 
+        _base = requests.get(data['url'])
+        soup = BeautifulSoup(_base.text,'html.parser')
+        upload = soup.find('input',id='code_html')['value']
+        link = soup.find('input',id='code_direct')['value']
+        delete = soup.find('input',id='code_remove')['value']
+
+        data = {
+            'upload':upload,
+            'link':link,
+            'delete':delete,
+        }
+        
         # Set the appropriate content type header
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
